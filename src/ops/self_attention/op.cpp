@@ -1,6 +1,9 @@
 #include "op.hpp"
 #include "../../utils.hpp"
 #include "cpu/self_attention_cpu.hpp"
+#ifdef ENABLE_NVIDIA_API
+#include "../nvidia/ops.cuh"
+#endif
 
 namespace llaisys::ops {
 void self_attention(tensor_t attn_val, tensor_t q, tensor_t k, tensor_t v, float scale) {
@@ -12,6 +15,9 @@ void self_attention(tensor_t attn_val, tensor_t q, tensor_t k, tensor_t v, float
     CHECK_ARGUMENT(attn_val->shape() == std::vector<size_t>({q->shape()[0], q->shape()[1], v->shape()[2]}), "Self-attention output shape is incompatible.");
     ASSERT(attn_val->isContiguous() && q->isContiguous() && k->isContiguous() && v->isContiguous(), "Self-attention tensors must be contiguous.");
     if (attn_val->deviceType() == LLAISYS_DEVICE_CPU) return cpu::self_attention(attn_val, q, k, v, scale);
+#ifdef ENABLE_NVIDIA_API
+    if (attn_val->deviceType() == LLAISYS_DEVICE_NVIDIA) return nvidia::self_attention(attn_val, q, k, v, scale);
+#endif
     EXCEPTION_UNSUPPORTED_DEVICE;
 }
 } // namespace llaisys::ops

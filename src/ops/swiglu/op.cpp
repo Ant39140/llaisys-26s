@@ -1,6 +1,9 @@
 #include "op.hpp"
 #include "../../utils.hpp"
 #include "cpu/swiglu_cpu.hpp"
+#ifdef ENABLE_NVIDIA_API
+#include "../nvidia/ops.cuh"
+#endif
 
 namespace llaisys::ops {
 void swiglu(tensor_t out, tensor_t gate, tensor_t up) {
@@ -10,6 +13,9 @@ void swiglu(tensor_t out, tensor_t gate, tensor_t up) {
     CHECK_ARGUMENT(out->ndim() == 2, "SwiGLU tensors must be 2D.");
     ASSERT(out->isContiguous() && gate->isContiguous() && up->isContiguous(), "SwiGLU tensors must be contiguous.");
     if (out->deviceType() == LLAISYS_DEVICE_CPU) return cpu::swiglu(out, gate, up);
+#ifdef ENABLE_NVIDIA_API
+    if (out->deviceType() == LLAISYS_DEVICE_NVIDIA) return nvidia::swiglu(out, gate, up);
+#endif
     EXCEPTION_UNSUPPORTED_DEVICE;
 }
 } // namespace llaisys::ops

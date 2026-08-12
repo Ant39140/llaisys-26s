@@ -16,7 +16,6 @@
 namespace llaisys::models {
 Qwen2::Qwen2(LlaisysQwen2Meta meta, llaisysDeviceType_t device, int device_id)
     : _meta(meta), _device(device), _device_id(device_id), _key_cache(meta.nlayer), _value_cache(meta.nlayer) {
-    CHECK_ARGUMENT(device == LLAISYS_DEVICE_CPU, "Qwen2 currently supports CPU only.");
 }
 
 void Qwen2::load(const std::string &name, const std::vector<size_t> &shape, llaisysDataType_t dtype, const void *data) {

@@ -1,6 +1,9 @@
 #include "op.hpp"
 #include "../../utils.hpp"
 #include "cpu/embedding_cpu.hpp"
+#ifdef ENABLE_NVIDIA_API
+#include "../nvidia/ops.cuh"
+#endif
 
 namespace llaisys::ops {
 void embedding(tensor_t out, tensor_t index, tensor_t weight) {
@@ -10,6 +13,9 @@ void embedding(tensor_t out, tensor_t index, tensor_t weight) {
     CHECK_SAME_DTYPE(out->dtype(), weight->dtype());
     ASSERT(out->isContiguous() && index->isContiguous() && weight->isContiguous(), "Embedding tensors must be contiguous.");
     if (out->deviceType() == LLAISYS_DEVICE_CPU) return cpu::embedding(out, index, weight);
+#ifdef ENABLE_NVIDIA_API
+    if (out->deviceType() == LLAISYS_DEVICE_NVIDIA) return nvidia::embedding(out, index, weight);
+#endif
     EXCEPTION_UNSUPPORTED_DEVICE;
 }
 } // namespace llaisys::ops
