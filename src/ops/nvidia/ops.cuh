@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../tensor/tensor.hpp"
+#include "../../tensor/tensor.hpp"
 
 namespace llaisys::ops::nvidia {
 void add(tensor_t out, tensor_t a, tensor_t b);
