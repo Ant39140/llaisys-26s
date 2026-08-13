@@ -73,12 +73,13 @@ int64_t Qwen2::infer(const int64_t *token_ids, size_t ntoken) {
         auto k_cache = Tensor::create({_cache_len + ntoken, _meta.nkvh, _meta.dh}, _meta.dtype, _device, _device_id);
         auto v_cache = Tensor::create({_cache_len + ntoken, _meta.nkvh, _meta.dh}, _meta.dtype, _device, _device_id);
         const size_t old_bytes = _cache_len * _meta.nkvh * _meta.dh * k_cache->elementSize();
+        auto runtime_api = core::context().runtime().api();
         if (_cache_len > 0) {
-            std::memcpy(k_cache->data(), _key_cache[layer]->data(), old_bytes);
-            std::memcpy(v_cache->data(), _value_cache[layer]->data(), old_bytes);
+            runtime_api->memcpy_sync(k_cache->data(), _key_cache[layer]->data(), old_bytes, LLAISYS_MEMCPY_D2D);
+            runtime_api->memcpy_sync(v_cache->data(), _value_cache[layer]->data(), old_bytes, LLAISYS_MEMCPY_D2D);
         }
-        std::memcpy(k_cache->data() + old_bytes, k_rot->data(), k_rot->numel() * k_rot->elementSize());
-        std::memcpy(v_cache->data() + old_bytes, v_new->data(), v_new->numel() * v_new->elementSize());
+        runtime_api->memcpy_sync(k_cache->data() + old_bytes, k_rot->data(), k_rot->numel() * k_rot->elementSize(), LLAISYS_MEMCPY_D2D);
+        runtime_api->memcpy_sync(v_cache->data() + old_bytes, v_new->data(), v_new->numel() * v_new->elementSize(), LLAISYS_MEMCPY_D2D);
         _key_cache[layer] = k_cache;
         _value_cache[layer] = v_cache;
 
@@ -105,6 +106,9 @@ int64_t Qwen2::infer(const int64_t *token_ids, size_t ntoken) {
     auto max_idx = Tensor::create({1}, LLAISYS_DTYPE_I64, _device, _device_id);
     auto max_val = Tensor::create({1}, logits->dtype(), _device, _device_id);
     ops::argmax(max_idx, max_val, logits->view({_meta.voc}));
-    return *reinterpret_cast<const int64_t *>(max_idx->data());
+    int64_t result;
+    const auto copy_kind = _device == LLAISYS_DEVICE_CPU ? LLAISYS_MEMCPY_H2H : LLAISYS_MEMCPY_D2H;
+    core::context().runtime().api()->memcpy_sync(&result, max_idx->data(), sizeof(result), copy_kind);
+    return result;
 }
 } // namespace llaisys::models
